@@ -55,7 +55,7 @@ def trigger_release_jobs(
 
     dist_file = get_cached_distribution(index, rosdistro_name)
     if not dist_file:
-        print('No distribution file matches the build file')
+        print('No distribution file matches the build file\n{}\n{}'.format(config.rosdistro_index_url, rosdistro_name))
         return
 
     repo_data = None

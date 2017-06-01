@@ -72,7 +72,7 @@ def configure_release_jobs(
 
     dist_file = get_distribution_file(index, rosdistro_name, build_file)
     if not dist_file:
-        print('No distribution file matches the build file')
+        print('No distribution file matches the build file\n{}\n{}'.format(config.rosdistro_index_url, rosdistro_name))
         return
 
     pkg_names = dist_file.release_packages.keys()
@@ -376,7 +376,7 @@ def configure_release_job(
         dist_file = get_distribution_file(index, rosdistro_name, build_file)
         if not dist_file:
             raise JobValidationError(
-                'No distribution file matches the build file')
+                'No distribution file matches the build file\n{}\n{}'.format(config.rosdistro_index_url, rosdistro_name))
 
     pkg_names = dist_file.release_packages.keys()
 

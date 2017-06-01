@@ -70,7 +70,7 @@ def configure_devel_jobs(
 
     dist_file = get_distribution_file(index, rosdistro_name, build_file)
     if not dist_file:
-        print('No distribution file matches the build file')
+        print('No distribution file matches the build file\n{}\n{}'.format(config.rosdistro_index_url, rosdistro_name))
         return
 
     devel_view_name = get_devel_view_name(

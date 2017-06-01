@@ -71,7 +71,7 @@ def configure_doc_jobs(
 
     dist_file = get_distribution_file(index, rosdistro_name, build_file)
     if not dist_file:
-        print('No distribution file matches the build file')
+        print('No distribution file matches the build file\n{}\n{}'.format(config.rosdistro_index_url, rosdistro_name))
         return
 
     doc_view_name = get_doc_view_name(rosdistro_name, doc_build_name)
@@ -189,7 +189,7 @@ def configure_doc_job(
         dist_file = get_distribution_file(index, rosdistro_name, build_file)
         if not dist_file:
             raise JobValidationError(
-                'No distribution file matches the build file')
+                'No distribution file matches the build file\n{}\n{}'.format(config.rosdistro_index_url, rosdistro_name))
 
     repo_names = dist_file.repositories.keys()
 
