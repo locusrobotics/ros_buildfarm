@@ -41,7 +41,7 @@
     <thead>
       <tr>
         <th class="sortable"><div>Name</div></th>
-@[for distro in distros]@
+@[for distro in sorted(distros)]@
         <th class="sortable"><div>@distro<br/>Status</div></th>
         <th><div>@distro<br/>Version</div></th>
 @[end for]@

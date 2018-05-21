@@ -7,13 +7,17 @@ import shutil
 from .templates import expand_template, get_template_path
 from github import Github, GithubException
 
-TOKEN_PATTERN = re.compile('https://([^@]*)@?github.com/.*git')
-ORG_PATTERN = re.compile('https://.*github.com/([^/]+)/.*git')
+GITHUB_TOKEN_PATTERN = re.compile('https://([^@]*)@?github.com/([^/]+)/.*git')
+GITLAB_TOKEN_PATTERN = re.compile('http://gitlab-ci-token:([^@]+)@(.*)\.git')
 
 
-def _download_yaml(url):
-    r = requests.get(url)
-    return yaml.load(r.text)
+def _download_yaml(url, headers={}):
+    r = requests.get(url, headers=headers)
+    try:
+        return yaml.load(r.text)
+    except:
+        print('Error', url)
+        return {}
 
 
 def _get_distro_info(distros=None):
@@ -39,14 +43,16 @@ def _extract_token(distro_info):
         for name, d in distro_data['repositories'].items():
             if 'source' not in d:
                 continue
-            m = TOKEN_PATTERN.match(d['source'].get('url', ''))
+            m = GITHUB_TOKEN_PATTERN.match(d['source'].get('url', ''))
             if m:
                 if len(m.group(1)):
                     return m.group(1)
 
 
-def _get_package_info(distro_info):
+def _get_package_info(g, distro_info):
     packages = {}
+    cached_tracks = {}
+
     for distro, distro_data in distro_info.items():
         for name, d in distro_data['repositories'].items():
             if name not in packages:
@@ -56,13 +62,31 @@ def _get_package_info(distro_info):
                 pkg = packages[name]
             pkg[distro] = {}
 
+            url = d.get('release', {}).get('url', None)
+            if url and url[-4:] == '.git':
+                if url in cached_tracks:
+                    tracks = cached_tracks[url]
+                else:
+                    m = GITLAB_TOKEN_PATTERN.match(url)
+                    if m:
+                        headers = {'PRIVATE-TOKEN': m.group(1)}
+                        tracks_url = 'http://' + m.group(2) + '/raw/master/tracks.yaml'
+                    else:
+                        tracks_url = url[:-4] + '/raw/master/tracks.yaml'
+                        headers = {}
+                    tracks = _download_yaml(tracks_url, headers).get('tracks', {})
+                    cached_tracks[url] = tracks
+                release_tag = tracks.get(distro, {}).get('release_tag', None)
+                if release_tag == ':{ask}' and 'last_release' in tracks[distro]:
+                    pkg[distro]['last_release'] = tracks[distro]['last_release']
+
             if 'source' in d:
                 upstream = d['source'].get('version', None)
                 if upstream:
                     pkg[distro]['upstream'] = upstream
-                m = ORG_PATTERN.match(d['source'].get('url', ''))
+                m = GITHUB_TOKEN_PATTERN.match(d['source'].get('url', ''))
                 if m:
-                    pkg[distro]['org'] = m.group(1)
+                    pkg[distro]['org'] = m.group(2)
 
             release = d.get('release', {}).get('version', None)
             if release:
@@ -79,7 +103,8 @@ def _get_package_status(g, name, branch_info):
         return 'NO RELEASE'
     try:
         repo = g.get_repo(branch_info['org'] + '/' + name)
-        the_diff = repo.compare(branch_info['release'], branch_info['upstream'])
+        branch = branch_info.get('last_release', branch_info['release'])
+        the_diff = repo.compare(branch, branch_info['upstream'])
         if len(the_diff.commits) > 0:
             return 'CHANGED'
         else:
@@ -98,13 +123,16 @@ def _query_package_statuses(g, package_info):
 
 def build_bloom_status_page(distros=None, output_dir='.'):
     start_time = time.time()
+    print('Retrieving list of distros from ROSDISTRO_INDEX_URL')
     distro_info = _get_distro_info(distros)
     token = _extract_token(distro_info)
-    package_info = _get_package_info(distro_info)
     if token:
         g = Github(token)
     else:
         g = Github()
+    print('Retrieving package info')
+    package_info = _get_package_info(g, distro_info)
+    print('Retrieving package statuses')
     _query_package_statuses(g, package_info)
 
     data = {
@@ -114,10 +142,10 @@ def build_bloom_status_page(distros=None, output_dir='.'):
         'distros': list(distro_info.keys())
     }
 
-    template_name = 'status/bloom_status_page.html.em'
-    html = expand_template(template_name, data)
     output_filename = os.path.join(output_dir, 'bloom_status.html')
     print("Generating bloom status page '%s':" % output_filename)
+    template_name = 'status/bloom_status_page.html.em'
+    html = expand_template(template_name, data)
     with open(output_filename, 'w') as h:
         h.write(html)
     for subfolder in ['css', 'js']:
