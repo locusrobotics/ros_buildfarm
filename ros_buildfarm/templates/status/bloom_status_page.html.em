@@ -52,7 +52,7 @@
 
 @[for pkg in sorted(packages)]@
 <tr><th><div>@pkg</div></th>
-@[for distro in distros]@
+@[for distro in sorted(distros)]@
         <td><div>@(packages[pkg].get(distro, {}).get('status', ''))</div></td>
         <td><div>@(packages[pkg].get(distro, {}).get('release', ''))</div></td>
 @[end for]@
