@@ -7,7 +7,7 @@
   <script type="text/javascript" src="js/moment.min.js"></script>
   <script type="text/javascript" src="js/zepto.min.js"></script>
   <script type="text/javascript">
-    window.META_COLUMNS = 5;
+    window.META_COLUMNS = @(len(distros) * 2 + 1);
   </script>
   <script type="text/javascript" src="js/setup.js"></script>
 
@@ -48,10 +48,9 @@
       </tr>
     </thead>
     <tbody>
-      <script type="text/javascript">window.tbody_ready();</script>
 
 @[for pkg in sorted(packages)]@
-<tr><th><div>@pkg</div></th>
+<tr><td><div>@pkg</div></td>
 @[for distro in sorted(distros)]@
         <td><div>@(packages[pkg].get(distro, {}).get('status', ''))</div></td>
         <td><div>@(packages[pkg].get(distro, {}).get('release', ''))</div></td>
@@ -60,6 +59,7 @@
 @[end for]@
 
     </tbody>
+    <script type="text/javascript">window.tbody_ready();</script>
   </table>
   <script type="text/javascript">window.body_done();</script>
 </body>
