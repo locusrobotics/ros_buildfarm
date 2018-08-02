@@ -6,66 +6,14 @@
 
   <script type="text/javascript" src="js/moment.min.js"></script>
   <script type="text/javascript" src="js/zepto.min.js"></script>
-  </script>
   <script type="text/javascript">
     window.META_COLUMNS = 4;
   </script>
-  <script type="text/javascript" src="js/setup.js"></script>
+  <script type="text/javascript" src="js/setup.js?@(resource_hashes['setup.js'])"></script>
 
-  <link rel="stylesheet" type="text/css" href="css/status_page.css" />
   <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.1.0/css/all.css" integrity="sha384-lKuwvrZot6UHsBSfcMvOkWwlCMgc0TaWr+30HWe3a4ltaBwTZhyTEggF5tJv8tbt" crossorigin="anonymous">
-  <style>
-  tbody tr td span { display: inline; }
-  td { vertical-align:top; }
-  .distro {
-    font-weight: 900;
-    font-style: normal;
-    font-size: 150%;
-  }
-  .status:before {
-    font-weight: 900;
-    font-family: "Font Awesome 5 Free";
-    font-style: normal;
-    font-size: 150%;
-  }
-  .status:before {
-    content: "\f0a3";
-  }
-  .released:before {
-    content: "\f14a";
-    color: green;
-  }
-  .waiting:before {
-    content: "\f055";
-    color: blue;
-  }
-  .source:before {
-    content: "\f1c9";
-    color: red;
-  }
-  .broken:before {
-    content: "\f057";
-    color: red
-  }
-  .complicated:before {
-    content: "\f1d0";
-    font-family: "Font Awesome 5 Brands";
-    color: red
-  }
-  .moreinfo {
-    position: absolute;
-    right: 0px;
-    bottom: 0px;
-    display: none;
-    text-align: center;
-  }
-  .expand_button:before {
-    content: "\f078";
-  }
-  .collapse_button:before {
-    content: "\f077";
-  }
-  </style>
+  <link rel="stylesheet" type="text/css" href="css/status_page.css?@(resource_hashes['status_page.css'])" />
+  <link rel="stylesheet" type="text/css" href="css/compare_page.css?@(resource_hashes['compare_page.css'])" />
 </head>
 @{
 def status_cell(status):
@@ -124,9 +72,9 @@ def status_cell(status):
         <th class="sortable"><div>Organization</div></th>
         <th class="sortable"><div>Repo</div></th>
         <th><div>Maintainers</div>
-    @[for distro in distros]@
-        <th><div class="distro" title="@distro">@distro[0].upper()</div>
-    @[end for]@
+@[for rosdistro_name in rosdistro_names]@
+        <th><div class="distro" title="@rosdistro_name.capitalize()">@rosdistro_name[0].capitalize()</div></th>
+@[end for]@
         <th>
     </thead>
     <tbody>
@@ -141,13 +89,13 @@ def status_cell(status):
                 <td><div>@[for email, name in PKG['maintainers'].items() ]@
                     <a href="mailto:@email">@name.encode('ascii', 'xmlcharrefreplace')</a><br />
                     @[end for]@</div>
-                @[for distro in distros]@
+                @[for distro in rosdistro_names]@
                 @status_cell(PKG['status'].get(distro))
                 @[end for]@
                 <td style="position:relative; text-align: right">
                   <span class="expand_button status" onclick="expand(this)">
                     <span class="moreinfo">
-                        @[for distro in distros]@
+                        @[for distro in rosdistro_names]@
                         @[if distro in PKG['status'] ]@
                         <b>@distro</b>: @PKG['status'][distro]
                                         (@PKG['versions'][distro])<br />

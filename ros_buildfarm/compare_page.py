@@ -21,6 +21,7 @@ import itertools
 from .config import get_index as get_config_index
 from .status_page import additional_resources
 from .status_page import get_resource_hashes
+from .super_status import get_super_status
 from .templates import expand_template
 
 
@@ -39,6 +40,9 @@ def build_release_compare_page(
     # get all input data
     distros = [get_cached_distribution(index, d) for d in rosdistro_names]
 
+    # get cached yaml data
+    super_status = get_super_status(config, rosdistro_names)
+
     pkg_names = [d.release_packages.keys() for d in distros]
     pkg_names = [x for y in pkg_names for x in y]
 
@@ -47,6 +51,7 @@ def build_release_compare_page(
         pkg_data = _compare_package_version(distros, pkg_name)
         if pkg_data:
             pkgs_data[pkg_name] = pkg_data
+            pkg_data.status = super_status.get(pkg_name, {})
 
     template_name = 'status/release_compare_page.html.em'
     data = {
@@ -77,8 +82,9 @@ class CompareRow(object):
         self.repo_name = ''
         self.repo_urls = []
         self.maintainers = {}
-        self.versions = []
+        self.versions = {}
         self.branches = []
+        self.status = {}
 
     def get_repo_name_with_link(self):
         valid_urls = [u for u in self.repo_urls if u]
@@ -96,7 +102,7 @@ class CompareRow(object):
         return ' '.join([self.maintainers[k] for k in sorted(self.maintainers.keys())])
 
     def get_labels(self, distros):
-        all_versions = [LooseVersion(v) if v else v for v in self.versions]
+        all_versions = [LooseVersion(v) if v else v for v in self.versions.values()]
         valid_versions = [v for v in all_versions if v]
         labels = []
         if any([
@@ -178,22 +184,10 @@ def _compare_package_version(distros, pkg_name):
                     branch = doc_repo.version
 
         row.repo_urls.append(repo_url)
-        row.versions.append(version)
+        if version:
+            row.versions[distro.name] = version
         row.branches.append(branch)
 
     # skip if no versions available
-    if not [v for v in row.versions if v]:
-        return None
-
-    data = [row.pkg_name, row.get_repo_name_with_link(), row.get_maintainers()] + \
-        [v if v else '' for v in row.versions]
-
-    labels = row.get_labels(distros)
-    if len(labels) > 0:
-        data[1] += ' <span class="ht">%s</span>' % ' '.join(labels)
-
-    # div-wrap all cells for layout reasons
-    for i, value in enumerate(data):
-        data[i] = '<div>%s</div>' % value
-
-    return data
+    if row.versions:
+        return row

@@ -9,3 +9,54 @@ tbody tr td:nth-child(6) div { width: 80px; overflow-x: hidden; }
 @media (min-width: 1380px) {
   tbody tr td:nth-child(3) { padding-right: 20px; }
 }
+
+tbody tr td span { display: inline; }
+td { vertical-align:top; }
+.distro {
+  font-weight: 900;
+  font-style: normal;
+  font-size: 150%;
+}
+.status:before {
+  font-weight: 900;
+  font-family: "Font Awesome 5 Free";
+  font-style: normal;
+  font-size: 150%;
+}
+.status:before {
+  content: "\f0a3";
+}
+.released:before {
+  content: "\f14a";
+  color: green;
+}
+.waiting:before {
+  content: "\f055";
+  color: blue;
+}
+.source:before {
+  content: "\f1c9";
+  color: red;
+}
+.broken:before {
+  content: "\f057";
+  color: red
+}
+.complicated:before {
+  content: "\f1d0";
+  font-family: "Font Awesome 5 Brands";
+  color: red
+}
+.moreinfo {
+  position: absolute;
+  right: 0px;
+  bottom: 0px;
+  display: none;
+  text-align: center;
+}
+.expand_button:before {
+  content: "\f078";
+}
+.collapse_button:before {
+  content: "\f077";
+}

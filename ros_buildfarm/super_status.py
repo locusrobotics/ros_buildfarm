@@ -6,6 +6,7 @@ import time
 import yaml
 from .aggregate_status import get_aggregate_status
 from .config import get_index as get_config_index, get_release_build_files
+from .status_page import additional_resources
 from .templates import expand_template
 
 YAML_FOLDER = 'http://repositories.ros.org/status_page/yaml/'
@@ -141,6 +142,13 @@ def collect_expected_values(build_file_dict):
                         C[distro][os_name][os_flavor].add(cpu)
     return C
 
+def get_super_status(config, rosdistro_names):
+    build_file_dict = {distro: get_release_build_files(config, distro) for distro in rosdistro_names}
+    blacklist = get_blacklist(build_file_dict)
+    expected = collect_expected_values(build_file_dict)
+    multi_distro_status = get_multi_distro_status(rosdistro_names)
+
+    return {pkg: get_aggregate_status(entry, expected, pkg, blacklist) for pkg, entry in multi_distro_status.items()}
 
 def merge_statuses(statuses):
     if len(statuses) == 1:
@@ -160,16 +168,19 @@ def merge_statuses(statuses):
         return 'mixed'
 
 
-def build_super_status_page(config_url, output_dir='.', distros=[]):
+def build_super_status_page(config_url, rosdistro_names=[], output_dir='.', copy_resources=False):
+    start_time = time.time()
+
     config = get_config_index(config_url)
-    if len(distros) == 0:
-        distros = list(sorted(config.distributions.keys()))
+
+    if len(rosdistro_names) == 0:
+        rosdistro_names = list(sorted(config.distributions.keys()))
 
     build_file_dict = {}
-    for distro in distros:
+    for distro in rosdistro_names:
         build_file_dict[distro] = get_release_build_files(config, distro)
 
-    multi_distro_status = get_multi_distro_status(distros)
+    multi_distro_status = get_multi_distro_status(rosdistro_names)
     print('Write yaml file')
     yaml_filename = os.path.join(output_dir, 'multi_distro_status.yaml')
     yaml.safe_dump(multi_distro_status, open(yaml_filename, 'w'), allow_unicode=True)
@@ -222,14 +233,15 @@ def build_super_status_page(config_url, output_dir='.', distros=[]):
     output_filename = os.path.join(output_dir, 'super_status.html')
     print("Generating super status page '%s':" % output_filename)
     template_name = 'status/super_status_page.html.em'
-    start_time = time.time()
     data = {
         'title': 'ROS Buildfarm Super Status',
         'start_time': start_time,
         'start_time_local_str': time.strftime('%Y-%m-%d %H:%M:%S %z', time.localtime(start_time)),
         'super_status': super_status,
-        'distros': distros
+        'rosdistro_names': rosdistro_names
     }
     html = expand_template(template_name, data)
     with open(output_filename, 'w') as h:
         h.write(html)
+
+    additional_resources(output_dir, copy_resources=copy_resources)
