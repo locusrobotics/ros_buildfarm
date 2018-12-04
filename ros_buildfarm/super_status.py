@@ -4,7 +4,7 @@ import requests
 import re
 import time
 import yaml
-from .aggregate_status import get_aggregate_status
+from .aggregate_status import get_aggregate_status, get_yaml_filenames
 from .config import get_index as get_config_index, get_release_build_files
 from .status_page import additional_resources
 from .templates import expand_template
@@ -30,26 +30,6 @@ URL_PATTERNS = {
     BB_PATTERN: BB_ORG_TEMPLATE,
     GITLAB_PATTERN: GITLAB_ORG_TEMPLATE
 }
-
-"""
-  Naming Conventions
-   * distro refers to ROS Distro (e.g. indigo)
-   * machine refers to different release builds (e.g. default, uxhf, dsv8)
-   * os_name refers to the name of the Operating System (e.g. ubuntu, debian)
-   * os_flavor refers to specific distros of the os (e.g. xenial, jessie)
-   * cpu refers to the cpu architecture (or source), (e.g. i386, amd64, source)
-   * candidate refers to different candidate builds, (e.g. build, test, main)
-   * combo refers to the os_flavor + the cpu
-"""
-
-
-def get_yaml_filenames():
-    filenames = {}
-    r = requests.get(YAML_FOLDER)
-    for filename, distro, machine in YAML_PATTERN.findall(r.text):
-        filenames[distro, machine] = filename
-    return filenames
-
 
 def dict_merge(dct, merge_dct):
     for k, v in merge_dct.iteritems():
@@ -77,6 +57,9 @@ def merge_status_yaml(data, new_data, new_distro):
 
 def get_multi_distro_status(distros):
     status = {}
+    for distro in distros:
+        merge_status_yaml(status, yaml.load(open('../generated/' + distro + '.yaml')), distro)
+    return status
     for (distro, machine), filename in sorted(get_yaml_filenames().items()):
         if distro not in distros:
             continue
@@ -147,6 +130,15 @@ def get_super_status(config, rosdistro_names):
     blacklist = get_blacklist(build_file_dict)
     expected = collect_expected_values(build_file_dict)
     multi_distro_status = get_multi_distro_status(rosdistro_names)
+    super = {}
+    for pkg, entry in multi_distro_status.items():
+        k = {}
+        for distro in rosdistro_names:
+            if distro in entry:
+                k[distro] = entry[distro]['description']
+        super[pkg] = k
+    return super
+
 
     return {pkg: get_aggregate_status(entry, expected, pkg, blacklist) for pkg, entry in multi_distro_status.items()}
 
