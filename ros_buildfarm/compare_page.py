@@ -18,12 +18,36 @@ from distutils.version import LooseVersion
 import os
 import time
 import itertools
+import yaml
 from .config import get_index as get_config_index
 from .status_page import additional_resources
 from .status_page import get_resource_hashes
-from .super_status import get_super_status
 from .templates import expand_template
 
+"""
+from .aggregate_status import get_yaml_filenames
+def get_multi_distro_status(distros):
+    for (distro, machine), filename in sorted(get_yaml_filenames().items()):
+        if distro not in distros:
+            continue
+        print('Loading {}/{}'.format(distro, machine))
+        r = requests.get(YAML_FOLDER + filename)
+        distro_status = yaml.load(r.text)
+        merge_status_yaml(status, distro_status, distro)
+    return status
+"""
+
+def get_descriptions_by_pkg_and_distro(rosdistro_names):
+    descriptions = {}
+    for distro in rosdistro_names:
+        status = yaml.load(open('../generated/' + distro + '.yaml'))
+        for pkg, entry in status.items:
+            if 'description' not in entry:
+                continue
+            if pkg not in descriptions:
+                descriptions[pkg] = {}
+            descriptions[pkg][distro] = entry['description']
+    return descriptions
 
 def build_release_compare_page(
         config_url, rosdistro_names,
@@ -40,8 +64,8 @@ def build_release_compare_page(
     # get all input data
     distros = [get_cached_distribution(index, d) for d in rosdistro_names]
 
-    # get cached yaml data
-    super_status = get_super_status(config, rosdistro_names)
+    # get cached status descriptions data
+    descriptions = get_descriptions_by_pkg_and_distro(rosdistro_names)
 
     pkg_names = [d.release_packages.keys() for d in distros]
     pkg_names = [x for y in pkg_names for x in y]
@@ -51,7 +75,7 @@ def build_release_compare_page(
         pkg_data = _compare_package_version(distros, pkg_name)
         if pkg_data:
             pkgs_data[pkg_name] = pkg_data
-            pkg_data.status = super_status.get(pkg_name, {})
+            pkg_data.status = descriptions.get(pkg_name, {})
 
     template_name = 'status/release_compare_page.html.em'
     data = {
