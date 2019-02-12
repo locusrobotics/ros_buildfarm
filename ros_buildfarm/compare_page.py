@@ -41,7 +41,7 @@ def get_descriptions_by_pkg_and_distro(rosdistro_names):
     descriptions = {}
     for distro in rosdistro_names:
         status = yaml.load(open('../generated/' + distro + '.yaml'))
-        for pkg, entry in status.items:
+        for pkg, entry in status.items():
             if 'description' not in entry:
                 continue
             if pkg not in descriptions:
